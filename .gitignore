@@ -1,1 +1,17 @@
-data/
+# Python
+__pycache__/
+*.pyc
+
+# Data & Large Files
+images/
+data/raw/
+data/processed/
+
+
+# Logs & Temporary
+*.log
+*.tmp
+
+# Editors
+.vscode/
+.idea/

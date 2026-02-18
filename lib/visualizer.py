@@ -46,75 +46,57 @@ class StructureVisualizer:
         try:
             # 1. 使用 sugar_utils 识别糖单元 (Identify Sugar Units using sugar_utils)
             sugar_units, atom_to_sugar = sugar_utils.get_sugar_units(mol)
-            linkages = sugar_utils.find_glycosidic_linkages(mol, sugar_units, atom_to_sugar)
+            # linkages = sugar_utils.find_glycosidic_linkages(mol, sugar_units, atom_to_sugar) # Unused in drawing for now
             
-            # 2. 收集原子分类 (Collect atom classifications)
-            sugar_ring_atoms: Set[int] = set()
-            sugar_substituent_atoms: Set[int] = set()
+            # 2. 收集所有属于“糖部分”的原子 (Collect all atoms belonging to the "Sugar Part")
+            all_sugar_unit_atoms: Set[int] = set() # Ring + Exocyclic carbons (e.g. C6)
             
-            # Helper to check if an atom is part of ANY sugar ring
-            all_sugar_ring_atoms = set()
             for unit in sugar_units:
-                all_sugar_ring_atoms.update(unit['ring_atoms'])
-
-            for unit in sugar_units:
-                # A. Ring Atoms -> Red
-                ring_atoms = set(unit['ring_atoms'])
-                sugar_ring_atoms.update(ring_atoms)
+                all_sugar_unit_atoms.update(unit['position_map'].keys())
                 
-                # B. Substituents -> Yellow
-                # Include atoms in position_map (like C6) that are NOT in the ring
-                mapped_atoms = set(unit['position_map'].keys())
-                exocyclic_carbons = mapped_atoms - ring_atoms
-                sugar_substituent_atoms.update(exocyclic_carbons)
-                
-                # Scan neighbors of ALL mapped atoms (ring + exocyclic) to find functional groups (OH, etc.)
-                for atom_idx in mapped_atoms:
-                    atom = mol.GetAtomWithIdx(atom_idx)
-                    for neighbor in atom.GetNeighbors():
-                        n_idx = neighbor.GetIdx()
-                        # If neighbor is part of a sugar ring, ignore (it's the ring bond or glycosidic bond to another sugar)
-                        if n_idx in all_sugar_ring_atoms:
-                            continue
-                        
-                        # If neighbor is already counted as exocyclic C, ignore
-                        if n_idx in sugar_substituent_atoms:
-                            continue
-                            
-                        # If neighbor is NOT in ring, it's likely a substituent (OH, O-Methyl, etc.)
-                        # Note: This might capture the Aglycone attachment point (glycosidic O). 
-                        # We ideally want the Glycosidic O to be "Substituent" color (Yellow) or special.
-                        # Using Yellow for now as it's "attached to sugar ring".
-                        sugar_substituent_atoms.add(n_idx)
+            # 4. Classification (Delegated to sugar_utils)
+            classification = sugar_utils.classify_sugar_parts(mol)
+            sugar_ring_atoms = classification['sugar_ring_atoms']
+            sugar_substituent_atoms = classification['sugar_substituent_atoms']
+            aglycone_atoms = classification['aglycone_atoms']
+            all_sugar_framework_atoms = classification.get('all_sugar_framework_atoms', set()) # C6 etc.
 
-            # 3. 识别苷元部分 (Identify Aglycone Part)
-            all_atom_indices = set(range(mol.GetNumAtoms()))
-            # Aglycone = All - (Sugar Rings + Substituents)
-            aglycone_atoms = all_atom_indices - sugar_ring_atoms - sugar_substituent_atoms
-            
-            # 4. 准备着色方案 (Prepare Coloring Scheme)
+            # 5. 准备着色方案 (Prepare Coloring Scheme)
             # 糖环 (Sugar Ring): 红色 (Red) (1.0, 0.6, 0.6)
-            # 糖取代基 (Substituents): 黄色 (Yellow) (1.0, 1.0, 0.6)
+            # 糖基团/连接 (Substituents/Linkages): 黄色 (Yellow) (1.0, 1.0, 0.4)
             # 苷元 (Aglycone): 蓝色 (Blue) (0.6, 0.8, 1.0)
             
-            highlight_atoms = list(all_atom_indices)
+            highlight_atoms = list(range(mol.GetNumAtoms()))
             highlight_atom_colors: Dict[int, tuple] = {}
             
-            for idx in sugar_ring_atoms:
-                highlight_atom_colors[idx] = (1.0, 0.5, 0.5) # Red
-            
-            for idx in sugar_substituent_atoms:
-                highlight_atom_colors[idx] = (1.0, 1.0, 0.4) # Yellow
-            
-            for idx in aglycone_atoms:
-                highlight_atom_colors[idx] = (0.5, 0.8, 1.0) # Blue
-                
-            # 5. 绘制图像 (Draw Image)
-            d2d = rdMolDraw2D.MolDraw2DCairo(600, 400)
+            for idx in range(mol.GetNumAtoms()):
+                if idx in sugar_ring_atoms:
+                    highlight_atom_colors[idx] = (1.0, 0.5, 0.5) # Red
+                elif idx in sugar_substituent_atoms:
+                    highlight_atom_colors[idx] = (1.0, 1.0, 0.4) # Yellow
+                elif idx in all_sugar_framework_atoms:
+                     # Exocyclic carbons (C6) -> Yellow to distinguish from ring, or light red?
+                     # User wants "Sugar Ring" vs "Substituents".
+                     # C6 is part of the sugar framework. Let's make it Light Red/Pink or same as Ring?
+                     # Usually C6 is 'part of the sugar'.
+                     # Let's keep it consistent: Sugar Framework = Red.
+                     # But current request: Substituents = Yellow.
+                     # Let's make C6 Red (Sugar) unless it's modified.
+                     highlight_atom_colors[idx] = (1.0, 0.5, 0.5) # Red
+                elif idx in aglycone_atoms:
+                    highlight_atom_colors[idx] = (0.5, 0.8, 1.0) # Blue
+                else:
+                    # Fallback (e.g. ions, or unaccounted atoms) -> Blue (Aglycone-like)
+                    highlight_atom_colors[idx] = (0.5, 0.8, 1.0)
+
+            # 6. 绘制图像 (Draw Image)
+            d2d = rdMolDraw2D.MolDraw2DCairo(800, 600) # Increased resolution
             
             # 设置绘图选项 (Drawing Options)
             dopts = d2d.drawOptions()
-            # dopts.addAtomIndices = True # DEBUG only
+            dopts.useBWAtomPalette() # Black and White atoms
+            dopts.padding = 0.05
+            
             d2d.DrawMolecule(mol, highlightAtoms=highlight_atoms, highlightAtomColors=highlight_atom_colors)
             d2d.FinishDrawing()
             
@@ -128,6 +110,7 @@ class StructureVisualizer:
             logger.error(f"Error analyzing/drawing molecule: {e}", exc_info=True)
             return False
 
+    # Removed internal classify_atoms method as it is now in sugar_utils
     def batch_process_from_file(self, file_path: str, output_dir: str = "images/batch/") -> None:
         """
         批量处理文件中的所有 SMILES，并将生成的图片嵌入到 Excel 中 (Batch process all SMILES and embed images into Excel)

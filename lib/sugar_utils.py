@@ -316,3 +316,194 @@ if __name__ == "__main__":
     
     valid, reason = validate_sugar_structure(smiles)
     print(f"\nValidation: {valid}, {reason}")
+
+# ---------- 7. Advanced Classification & Splitting ----------
+
+# Common Substituents (SMARTS)
+SUBSTITUENTS_SMARTS = {
+    # Simple Acyl
+    "Acetyl": "CC(=O)O",  # Matches the ester oxygen? No, usually attach to O of sugar.
+                          # Better to match the group itself attached.
+                          # For simplicity, we match the group structure.
+    "Malonyl": "OC(=O)CC(=O)O",
+    "Succinyl": "OC(=O)CCC(=O)O",
+    
+    # Phenylpropanoids
+    "Caffeoyl": "OC(=O)/C=C/c1ccc(O)c(O)c1",
+    "Feruloyl": "OC(=O)/C=C/c1ccc(O)c(OC)c1",
+    "Coumaroyl": "OC(=O)/C=C/c1ccc(O)cc1",
+    "Sinapoyl": "OC(=O)/C=C/c1cc(OC)c(O)c(OC)c1",
+    
+    # Others
+    "Galloyl": "OC(=O)c1cc(O)c(O)c(O)c1",
+    "Benzoyl": "OC(=O)c1ccccc1"
+} 
+
+def classify_sugar_parts(mol):
+    """
+    Classifies atoms into:
+    - 'sugar_ring_atoms': Atoms in the pyranose/furanose rings
+    - 'sugar_substituent_atoms': Atoms in small substituents attached to sugars (including Acetyl, etc.)
+    - 'aglycone_atoms': Atoms in the Aglycone (non-sugar part)
+    
+    Returns a dict with 3 sets of atom indices.
+    """
+    sugar_units, atom_to_sugar = get_sugar_units(mol)
+    
+    all_sugar_unit_atoms = set()
+    sugar_ring_atoms = set()
+    
+    for unit in sugar_units:
+        all_sugar_unit_atoms.update(unit['position_map'].keys())
+        sugar_ring_atoms.update(unit['ring_atoms'])
+        
+    sugar_substituent_atoms = set()
+    aglycone_atoms = set()
+    
+    # Pre-calculate partial matches for known substituents to assist classification?
+    # Actually, the traversal heuristic (size) + SMARTS is safer.
+    
+    # Set of atoms already accounted for (Ring + Exocyclic Sugar Carbons)
+    processed_atoms = set(all_sugar_unit_atoms) 
+    
+    # Helper: Traverse a branch
+    def get_branch(start_node, origin_node):
+        branch_nodes = set()
+        queue = [start_node]
+        branch_nodes.add(start_node)
+        is_linkage = False # If it connects to another sugar
+        
+        while queue:
+            curr = queue.pop(0)
+            atom = mol.GetAtomWithIdx(curr)
+            for nbr in atom.GetNeighbors():
+                nbr_idx = nbr.GetIdx()
+                if nbr_idx == origin_node:
+                    continue
+                
+                # If we hit another sugar unit, it's a linkage/bridge
+                if nbr_idx in all_sugar_unit_atoms:
+                    is_linkage = True
+                    continue # Do not traverse INTO the other sugar
+                
+                if nbr_idx not in branch_nodes:
+                    branch_nodes.add(nbr_idx)
+                    queue.append(nbr_idx)
+        return branch_nodes, is_linkage
+
+    # Identify "Subs vs Aglycone" by traversing out from Sugar Atoms
+    # Sort for determinism
+    sorted_sugar_atoms = sorted(list(all_sugar_unit_atoms))
+    
+    # We need to track which atoms are assigned to avoid double counting
+    assigned_atoms = set()
+    
+    for s_idx in sorted_sugar_atoms:
+        atom = mol.GetAtomWithIdx(s_idx)
+        for nbr in atom.GetNeighbors():
+            nbr_idx = nbr.GetIdx()
+            
+            # Internal sugar bond
+            if nbr_idx in all_sugar_unit_atoms:
+                continue
+            
+            # Already assigned (e.g. from another traversal)
+            if nbr_idx in sugar_substituent_atoms or nbr_idx in aglycone_atoms:
+                continue
+                
+            # Traverse
+            branch, is_linkage = get_branch(nbr_idx, s_idx)
+            
+            # CLASSIFICATION LOGIC
+            branch_size = len(branch)
+            # Threshold: 15 atoms. 
+            # E.g. Acetyl (C2H3O) ~ 4 heavy atoms. 
+            # Caffeoyl (C9H7O3) ~ 12 heavy atoms.
+            # Aglycone usually Steroid (C17+) or Triterpene (C30+).
+            MAX_SUBSTITUENT_SIZE = 15 
+            
+            if is_linkage:
+                # If it connects two sugars, it acts as a bridge.
+                # If the bridge is huge, it might be aglycone-like, but usually it's just O or O-CH2-O.
+                # For visualization, we can color it yellow (substituent-like).
+                if branch_size > MAX_SUBSTITUENT_SIZE:
+                    # Rare case: A large linker? Treat as aglycone
+                    aglycone_atoms.update(branch)
+                else:
+                    sugar_substituent_atoms.update(branch)
+            else:
+                # Terminal branch
+                if branch_size <= MAX_SUBSTITUENT_SIZE:
+                    sugar_substituent_atoms.update(branch)
+                else:
+                    aglycone_atoms.update(branch)
+    
+    # Anything not in sugar or substitutents is aglycone (e.g. detached salts or unconnected parts, though rare in single mol)
+    # But for a connected graph, the traversal above covers all non-sugar atoms attached to sugar.
+    # What if the Aglycone is the "root" and sugars are attached?
+    # The loop iterates ALL sugar atoms. So any attachment to ANY sugar is checked.
+    # If there are atoms NOT attached to any sugar (e.g. Aglycone atoms deep in the core),
+    # they won't be in 'branch' if we only traverse from sugar?
+    # Wait, 'get_branch' traverses the *entire* connected component until it hits another sugar or ends.
+    # So if we start from a sugar O attached to Aglycone C, we traverse the WHOLE Aglycone.
+    
+    return {
+        'sugar_ring_atoms': sugar_ring_atoms,
+        'sugar_substituent_atoms': sugar_substituent_atoms,
+        'aglycone_atoms': aglycone_atoms,
+        'all_sugar_framework_atoms': all_sugar_unit_atoms # Ring + C6 etc.
+    }
+
+def get_split_smiles(mol):
+    """
+    Splits the molecule into Aglycone and Glycan parts.
+    Returns: (aglycone_smiles, glycan_smiles)
+    
+    Strategy:
+    - Aglycone SMILES: Mask Sugar+Substituents, or extract Aglycone atoms?
+      - Better: Delete Sugar+Subst atoms to get Aglycone.
+    - Glycan SMILES: Delete Aglycone atoms to get Glycan.
+    """
+    if not mol:
+        return "", ""
+        
+    classification = classify_sugar_parts(mol)
+    
+    aglycone_indices = classification['aglycone_atoms']
+    sugar_part_indices = classification['sugar_ring_atoms'].union(classification['sugar_substituent_atoms']).union(classification['all_sugar_framework_atoms'])
+    
+    # 1. Get Aglycone SMILES
+    # If no aglycone atoms, return empty
+    if not aglycone_indices:
+        aglycone_smiles = ""
+    else:
+        # Create a new editable mol
+        try:
+            # We want to keep Aglycone atoms.
+            # Easiest way in RDKit is to determine atoms TO DELETE.
+            # Delete all atoms NOT in aglycone_indices?
+            # Wait, RDKit atom indices change after deletion. Use specific function provided by generic RDKit flow or EditableMol.
+            
+            # But wait, we want to show attachment points?
+            # User request: "Split SMILES". Usually means the isolated structure.
+            # If we just cut bonds, we get radicals or hydrogens.
+            # RDKit's PathToSubmol or similar might accept a list of atom indices.
+            
+            # APPROACH: Use MolFragmentToSmiles
+            # It allows specifying atomsToUse.
+            aglycone_smiles = Chem.MolFragmentToSmiles(mol, atomsToUse=list(aglycone_indices), canonical=True, isomericSmiles=True)
+            
+            # Note: This might create disjoint fragments if the aglycone is effectively split by sugars (unlikely for saponins, usually 1 aglycone core).
+        except Exception as e:
+            aglycone_smiles = f"Error: {e}"
+
+    # 2. Get Glycan SMILES
+    if not sugar_part_indices:
+        glycan_smiles = ""
+    else:
+        try:
+            glycan_smiles = Chem.MolFragmentToSmiles(mol, atomsToUse=list(sugar_part_indices), canonical=True, isomericSmiles=True)
+        except Exception as e:
+            glycan_smiles = f"Error: {e}"
+            
+    return aglycone_smiles, glycan_smiles

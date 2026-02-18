@@ -14,4 +14,7 @@ if errorlevel 1 (
 )
 
 echo [SUCCESS] Pipeline finished. Check reports/unified_data.xlsx and images/Ginsenoside/
+echo [INFO] Debugging single sugar visualization...
+"C:\Users\Daniel Yang\anaconda3\envs\chem_ai\python.exe" scripts/debug_sugar.py
+
 pause

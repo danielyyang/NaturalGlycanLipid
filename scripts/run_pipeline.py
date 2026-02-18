@@ -156,6 +156,15 @@ def run_pipeline(keyword: str, source: str, limit: int):
     else:
         image_output_dir = os.path.join(project_root, 'images', 'batch')
 
+    # Clean existing directory to ensure fresh images
+    if os.path.exists(image_output_dir):
+        import shutil
+        try:
+            shutil.rmtree(image_output_dir)
+            logger.info(f"Cleaned existing image directory: {image_output_dir}")
+        except Exception as e:
+            logger.warning(f"Could not clean image directory: {e}")
+
     if not df_valid.empty:
         logger.info(f"Generating and embedding structures into {image_output_dir}...")
         visualizer.batch_process_from_file(excel_path, image_output_dir)

@@ -24,6 +24,14 @@ try:
             
         valid, reason = sugar_utils.validate_sugar_structure(smiles)
         print(f"Validation Result: {valid}, Reason: {reason}")
+        
+        # Test Visualization
+        from lib.visualizer import StructureVisualizer
+        viz = StructureVisualizer()
+        output_img = "images/debug_ginsenoside.png"
+        viz.analyze_glycolipid(smiles, output_img)
+        print(f"Visualization saved to: {output_img}")
+        
     else:
         print("RDKit Mol: Invalid")
 except Exception as e:
