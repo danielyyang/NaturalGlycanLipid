@@ -189,7 +189,7 @@ def find_mapped_sugar_units(mol):
         if any(frozenset(ex['ring_atoms']) == ring_set for ex in matched_units):
             continue
             
-        # Call the updated identifier which now guarantees the correct anomer
+        # 接收基于拓扑匹配的绝对结果
         identify_result = seq.identify_monosaccharide_v2(mol, ring)
         if isinstance(identify_result, tuple):
             base_name, anomer_config = identify_result
@@ -363,85 +363,62 @@ def is_bridge_oxygen_between_sugars(mol, atom, atom_to_sugar):
 
 # ---------- 4. Find glycosidic oxygens (sugar–sugar bridge) ----------
 
-def find_glycosidic_linkages(mol, sugar_units):
-    """
-    Returns a list of glycosidic linkages between sugar units using Atom Mappings:
-      [
-        {
-          'sugar_donor': id,
-          'sugar_acceptor': id,
-          'linkage': '1-6'
-        }, ...
-      ]
-    """
+def is_anomeric(mol, idx):
+    """判断一个碳原子是否为异头碳（连接>=2个氧原子）"""
+    atom = mol.GetAtomWithIdx(idx)
+    return sum(1 for n in atom.GetNeighbors() if n.GetAtomicNum() == 8) >= 2
+
+def find_glycosidic_linkages(mol, units):
     linkages = []
-    
-    for bond in mol.GetBonds():
-        a1 = bond.GetBeginAtomIdx()
-        a2 = bond.GetEndAtomIdx()
+    # 1. 构建扩展环 (包含环外 C6)
+    for u in units:
+        ring = set(u['ring_atoms'])
+        exo_carbons = set()
+        for idx in ring:
+            atom = mol.GetAtomWithIdx(idx)
+            for nbr in atom.GetNeighbors():
+                if nbr.GetSymbol() == 'C' and nbr.GetIdx() not in ring:
+                    exo_carbons.add(nbr.GetIdx())
+        u['extended_ring'] = ring.union(exo_carbons)
         
-        # Look for bonds connected to an anomeric carbon (C1)
-        for u_donor in sugar_units:
-            if u_donor.get('anomeric_idx') in (a1, a2):
-                c1_idx = u_donor['anomeric_idx']
-                bridge_atom_idx = a2 if a1 == c1_idx else a1
-                
-                # Check if this bridge atom belongs to another sugar (acceptor)
-                for u_acceptor in sugar_units:
-                    if u_donor['id'] == u_acceptor['id']: continue
-                    
-                    donor_idx = u_donor['id']
-                    acceptor_idx = u_acceptor['id']
-
-                    # Determine the position on the donor (u_donor)
-                    # For now, we assume the donor is always anomeric (C1)
-                    pos_in_u_donor = 1 # This is implied by the outer loop condition
-
-                    # Determine the position on the acceptor (u_acceptor)
-                    pos_in_u_acceptor = None
-                    if bridge_atom_idx in u_acceptor.get('oxygen_map', {}):
-                        pos_in_u_acceptor = u_acceptor['oxygen_map'][bridge_atom_idx]
-                    elif bridge_atom_idx in u_acceptor.get('position_map', {}):
-                        pos_in_u_acceptor = u_acceptor['position_map'][bridge_atom_idx]
-                    
-                    if pos_in_u_acceptor is not None:
-                        # Detect Non-Reducing Linkage
-                        # Both bridge_atom_idx and c1_idx are involved. By definition of this loop, 
-                        # we are looking at a bond extending from u_donor's anomeric carbon to something else.
-                        # If that "something else" is the anomeric carbon (or its exocyclic oxygen) of u_acceptor:
-                        is_non_reducing = (u_acceptor.get('anomeric_idx') == bridge_atom_idx) or (pos_in_u_acceptor in [1, 2] and u_acceptor.get('anomeric_idx') is not None)
+    # 2. 严格的单向寻径
+    for i, u1 in enumerate(units):
+        for j, u2 in enumerate(units):
+            if i == j: continue
+            
+            for atom in mol.GetAtoms():
+                if atom.GetSymbol() == 'O':
+                    nbrs = [n.GetIdx() for n in atom.GetNeighbors()]
+                    if len(nbrs) == 2:
+                        n0, n1 = nbrs[0], nbrs[1]
+                        donor_idx, acceptor_idx = None, None
                         
-                        if is_non_reducing:
-                            # Prefer Pyranose -> Furanose (Standard Non-reducing Linkage Ordering)
-                            donor_size = len(u_donor.get('ring_atoms', []))
-                            acceptor_size = len(u_acceptor.get('ring_atoms', []))
+                        # 绝对法则：u1 必须是提供异头碳(Donor)的一方，u2 必须提供受体碳(Acceptor)
+                        if (n0 in u1['ring_atoms'] and is_anomeric(mol, n0)) and (n1 in u2['extended_ring'] and n1 not in u1['ring_atoms']):
+                            donor_idx, acceptor_idx = n0, n1
+                        elif (n1 in u1['ring_atoms'] and is_anomeric(mol, n1)) and (n0 in u2['extended_ring'] and n0 not in u1['ring_atoms']):
+                            donor_idx, acceptor_idx = n1, n0
                             
-                            valid_direction = False
-                            if donor_size > acceptor_size:
-                                valid_direction = True
-                            elif donor_size == acceptor_size and u_donor['id'] < u_acceptor['id']:
-                                valid_direction = True
+                        if donor_idx is not None:
+                            # 对于头对头的非还原键(如 Sucrose)，防止双向重复记录，仅保留单向
+                            if is_anomeric(mol, acceptor_idx) and u1['id'] > u2['id']:
+                                continue
                                 
-                            if valid_direction:
-                                # The pos_in_u_acceptor is the linkage pos of the acceptor (e.g., 2 for Fru)
-                                # The pos_in_u_donor is the linkage pos of the donor (e.g., 1 for Glc)
-                                # But because this is non-reducing, we need to record a specific edge type
-                                acceptor_anomer = u_acceptor.get('anomeric_config', '')
-                                if acceptor_anomer == "?": acceptor_anomer = ""
+                            pos_donor = u1.get('position_map', {}).get(donor_idx, "?")
+                            pos_acc_num = u2.get('position_map', {}).get(acceptor_idx, 6 if acceptor_idx not in u2['ring_atoms'] else "?")
+                            
+                            # 动态生成受体后缀（非还原糖带上 b2/a2 等）
+                            if is_anomeric(mol, acceptor_idx):
+                                acc_config = u2.get('anomeric_config', '?')
+                                pos_acceptor = f"{acc_config}{pos_acc_num}"
+                            else:
+                                pos_acceptor = str(pos_acc_num)
                                 
-                                linkages.append({
-                                    'sugar_donor': u_donor['id'],
-                                    'sugar_acceptor': u_acceptor['id'],
-                                    'linkage': f"{pos_in_u_donor}-{acceptor_anomer}{pos_in_u_acceptor}"
-                                })
-                        else:
-                            # Standard reducing linkage
                             linkages.append({
-                                'sugar_donor': u_donor['id'],
-                                'sugar_acceptor': u_acceptor['id'],
-                                'linkage': f"1-{pos_in_u_acceptor}"
+                                'sugar_donor': u1['id'],
+                                'sugar_acceptor': u2['id'],
+                                'linkage': f"{pos_donor}-{pos_acceptor}"
                             })
-                            
     return linkages
 
 # ---------- 5. Main function from SMILES ----------

@@ -8,11 +8,21 @@ from lib import sugar_sequence
 
 # [TEST DATA ONLY]
 TEST_CASES = {
+    # === 1-4 连接对照组 ===
     "Maltose (Glc-a1,4-Glc)": "O[C@H]1[C@H](O)[C@@H](O)[C@H](O[C@H]2[C@H](O)[C@@H](O)[C@H](O)[C@@H](CO)O2)[C@@H](CO)O1",
     "Cellobiose (Glc-b1,4-Glc)": "O[C@H]1[C@H](O)[C@@H](O)[C@H](O[C@@H]2[C@H](O)[C@@H](O)[C@H](O)[C@@H](CO)O2)[C@@H](CO)O1",
-    "Sucrose (Glc-a1,2-Fru)": "OC[C@H]1O[C@H](O[C@@]2(CO)O[C@H](CO)[C@@H](O)[C@@H]2O)[C@H](O)[C@@H](O)[C@@H]1O",
-    "Raffinose (Gal-a1,6-Glc-a1,2-Fru)": "OC[C@H]1O[C@H](OC[C@H]2O[C@H](O[C@@]3(CO)O[C@H](CO)[C@@H](O)[C@@H]3O)[C@H](O)[C@@H](O)[C@@H]2O)[C@H](O)[C@@H](O)[C@H]1O",
-    "Stachyose (Gal-a1,6-Gal-a1,6-Glc-a1,2-Fru)": "C([C@@H]1[C@@H]([C@@H]([C@H]([C@H](O1)OC[C@@H]2[C@@H]([C@@H]([C@H]([C@H](O2)OC[C@@H]3[C@H]([C@@H]([C@H]([C@H](O3)O[C@]4([C@H]([C@@H]([C@H](O4)CO)O)O)CO)O)O)O)O)O)O)O)O)O)O"
+    "Lactose (Gal-b1,4-Glc)": "O[C@H]1[C@H](O)[C@@H](O)[C@H](O[C@@H]2[C@H](O)[C@@H](O)[C@@H](O)[C@@H](CO)O2)[C@@H](CO)O1",
+    
+    # === 1-6 连接对照组 ===
+    "Isomaltose (Glc-a1,6-Glc)": "O[C@H]1[C@H](O)[C@@H](O)[C@H](O)[C@@H](CO[C@H]2[C@H](O)[C@@H](O)[C@H](O)[C@@H](CO)O2)O1",
+    "Gentiobiose (Glc-b1,6-Glc)": "O[C@H]1[C@H](O)[C@@H](O)[C@H](O)[C@@H](CO[C@@H]2[C@H](O)[C@@H](O)[C@H](O)[C@@H](CO)O2)O1",
+    "Melibiose (Gal-a1,6-Glc)": "O[C@H]1[C@H](O)[C@@H](O)[C@H](O)[C@@H](CO[C@H]2[C@H](O)[C@@H](O)[C@@H](O)[C@@H](CO)O2)O1",
+    
+    # === 1-2 非还原连接对照组 ===
+    "Sucrose (Glc-a1,b2-Fru)": "OC[C@@]1(O[C@H]2[C@H](O)[C@@H](O)[C@H](O)[C@@H](CO)O2)[C@@H](O)[C@H](O)[C@@H](CO)O1",
+    
+    # === 复杂多糖对照组 ===
+    "Stachyose (Gal-a1,6-Gal-a1,6-Glc-a1,b2-Fru)": "OC[C@@]1(O[C@H]2[C@H](O)[C@@H](O)[C@H](O)[C@@H](CO[C@H]3[C@H](O)[C@@H](O)[C@@H](O)[C@@H](CO[C@H]4[C@H](O)[C@@H](O)[C@@H](O)[C@@H](CO)O4)O3)O2)[C@@H](O)[C@H](O)[C@@H](CO)O1"
 }
 
 for name, smi in TEST_CASES.items():

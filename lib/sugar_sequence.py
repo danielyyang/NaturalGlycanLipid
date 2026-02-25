@@ -26,21 +26,60 @@ except ImportError:
 
 # ---------- 1. Reference Library Definitions ----------
 
-# We use this to generate R/S signatures dynamically.
+# [THE COMPREHENSIVE NATURAL PRODUCTS DICTIONARY] D & L Enantiomers
 RAW_MONOSACCHARIDE_SMILES = {
-    # Pyranoses
-    ("Glc", "a"): ["O[C@H]1[C@H](O)[C@@H](O)[C@H](O)[C@@H](CO)O1"],
-    ("Glc", "b"): ["O[C@@H]1[C@H](O)[C@@H](O)[C@H](O)[C@@H](CO)O1"],
-    ("Gal", "a"): ["O[C@H]1[C@@H](O)[C@@H](O)[C@H](O)[C@@H](CO)O1"],
-    ("Gal", "b"): ["O[C@@H]1[C@@H](O)[C@@H](O)[C@H](O)[C@@H](CO)O1"],
-    ("Man", "a"): ["O[C@H]1[C@H](O)[C@@H](O)[C@@H](O)[C@@H](CO)O1"],
-    ("Man", "b"): ["O[C@@H]1[C@H](O)[C@@H](O)[C@@H](O)[C@@H](CO)O1"],
-    # Furanoses
-    ("Fru", "a"): ["OC[C@]1(O)O[C@H](CO)[C@@H](O)[C@@H]1O"], 
-    ("Fru", "b"): ["OC[C@@]1(O)O[C@H](CO)[C@@H](O)[C@@H]1O"],
+    # === Hexopyranoses (6-membered Hexoses) ===
+    # D-Glucose
+    ("D-Glc", "a"): "O[C@H]1[C@H](O)[C@@H](O)[C@H](O)[C@@H](CO)O1",
+    ("D-Glc", "b"): "O[C@@H]1[C@H](O)[C@@H](O)[C@H](O)[C@@H](CO)O1",
+    # L-Glucose (Rare, but included for completeness)
+    ("L-Glc", "a"): "O[C@@H]1[C@@H](O)[C@H](O)[C@@H](O)[C@H](CO)O1",
+    ("L-Glc", "b"): "O[C@H]1[C@@H](O)[C@H](O)[C@@H](O)[C@H](CO)O1",
+    
+    # D-Galactose
+    ("D-Gal", "a"): "O[C@H]1[C@H](O)[C@@H](O)[C@@H](O)[C@@H](CO)O1",
+    ("D-Gal", "b"): "O[C@@H]1[C@H](O)[C@@H](O)[C@@H](O)[C@@H](CO)O1",
+    # L-Galactose (Found in agar and some plant cell walls)
+    ("L-Gal", "a"): "O[C@@H]1[C@@H](O)[C@H](O)[C@H](O)[C@H](CO)O1",
+    ("L-Gal", "b"): "O[C@H]1[C@@H](O)[C@H](O)[C@H](O)[C@H](CO)O1",
+    
+    # D-Mannose
+    ("D-Man", "a"): "O[C@H]1[C@@H](O)[C@@H](O)[C@H](O)[C@@H](CO)O1",
+    ("D-Man", "b"): "O[C@@H]1[C@@H](O)[C@@H](O)[C@H](O)[C@@H](CO)O1",
+    # L-Mannose (Base skeleton for L-Rhamnose which is 6-deoxy-L-Man)
+    ("L-Man", "a"): "O[C@@H]1[C@H](O)[C@H](O)[C@@H](O)[C@H](CO)O1",
+    ("L-Man", "b"): "O[C@H]1[C@H](O)[C@H](O)[C@@H](O)[C@H](CO)O1",
+    
+    # === Furanoses (5-membered Ketoses) ===
+    ("D-Fru", "a"): "OC[C@]1(O)[C@@H](O)[C@H](O)[C@@H](CO)O1",
+    ("D-Fru", "b"): "OC[C@@]1(O)[C@@H](O)[C@H](O)[C@@H](CO)O1",
+    
+    # === Pentopyranoses (6-membered Pentoses, vital for Natural Products) ===
+    # D-Xylose
+    ("D-Xyl", "a"): "O[C@H]1[C@H](O)[C@@H](O)[C@H](O)CO1",
+    ("D-Xyl", "b"): "O[C@@H]1[C@H](O)[C@@H](O)[C@H](O)CO1",
+    
+    # L-Arabinose (Extremely common in saponins and flavonoids)
+    ("L-Ara", "a"): "O[C@H]1[C@@H](O)[C@@H](O)[C@@H](O)CO1",
+    ("L-Ara", "b"): "O[C@@H]1[C@@H](O)[C@@H](O)[C@@H](O)CO1",
+    # D-Arabinose
+    ("D-Ara", "a"): "O[C@@H]1[C@H](O)[C@H](O)[C@H](O)CO1",
+    ("D-Ara", "b"): "O[C@H]1[C@H](O)[C@H](O)[C@H](O)CO1",
 }
+def create_query_mol(smiles):
+    """将标准 SMILES 转化为无视隐式氢的通用 Query 分子"""
+    mol = Chem.MolFromSmiles(smiles)
+    if not mol: return None
+    qmol = Chem.RWMol(mol)
+    for atom in qmol.GetAtoms():
+        if atom.GetAtomicNum() == 8:
+            # 将所有氧原子替换为通用氧查询，允许其在聚合物中连接其他重原子
+            q_atom = Chem.rdqueries.AtomNumEqualsQueryAtom(8)
+            qmol.ReplaceAtom(atom.GetIdx(), q_atom)
+    return qmol.GetMol()
 
-RS_LIBRARY = {}
+# 使用改造后的通用查询图预编译字典
+REFERENCE_MOLS = {k: create_query_mol(v) for k, v in RAW_MONOSACCHARIDE_SMILES.items() if create_query_mol(v) is not None}
 
 def isolate_sugar_ring(mol, ring_atoms):
     bonds_to_cut = []
@@ -156,36 +195,21 @@ def check_modifications(mol, ring_atoms, ref_smiles=None):
     return final_mods, is_acid, is_complex
 
 def identify_monosaccharide_v2(mol, ring_atoms):
-    # 1. Isolate the ring into a pure monomer
-    clean_mol, mapping = isolate_sugar_ring(mol, list(ring_atoms))
-    
     base_name = "Hex" if len(ring_atoms) == 6 else "Pen"
-    matched_name = None
     matched_anomer = "?"
     
-    # 2. Match using pure topological chiral graphs, NOT fragile strings
-    if clean_mol:
-        for (name, anomer), smiles_list in RAW_MONOSACCHARIDE_SMILES.items():
-            for smi in smiles_list:
-                ref_mol = Chem.MolFromSmiles(smi)
-                if not ref_mol: continue
-                
-                # If the isolated clean_mol structurally and chirally matches the reference monomer
-                if clean_mol.HasSubstructMatch(ref_mol, useChirality=True):
-                    # Ensure it's not a partial match (e.g. pentose fitting inside a hexose)
-                    if clean_mol.GetNumHeavyAtoms() == ref_mol.GetNumHeavyAtoms():
-                        matched_name = name
-                        matched_anomer = anomer
-                        break
-            if matched_name:
+    # 直接在完整的 polymer (mol) 上进行子图透视匹配，绝不切割分子！
+    for (name, anomer), ref_mol in REFERENCE_MOLS.items():
+        matches = mol.GetSubstructMatches(ref_mol, useChirality=True)
+        for match in matches:
+            # 如果这个匹配的子图完美覆盖了我们当前的 ring_atoms，说明就是它！
+            if all(idx in match for idx in ring_atoms):
+                base_name = name
+                matched_anomer = anomer
                 break
+        if matched_anomer != "?":
+            break
                 
-    if matched_name:
-        base_name = matched_name
-    else:
-        base_name = f"{base_name}*"
-                
-    # 3. Modification processing
     mods, is_acid, is_complex = check_modifications(mol, ring_atoms)
     
     if "GlcNAc" in base_name or "GalNAc" in base_name:
@@ -194,12 +218,9 @@ def identify_monosaccharide_v2(mol, ring_atoms):
         if "A" in mods: mods.remove("A")
         
     if base_name == "Glc" and "A" in mods:
-        base_name = "GlcA"
-        mods.remove("A")
+        base_name = "GlcA"; mods.remove("A")
     elif base_name == "Gal" and "A" in mods:
-         base_name = "GalA"
-         mods.remove("A")
-         
+         base_name = "GalA"; mods.remove("A")
          
     final_name = f"{base_name}({','.join(mods)})" if mods else base_name
     return final_name, matched_anomer
