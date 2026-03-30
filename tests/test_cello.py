@@ -1,7 +1,7 @@
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__))))
 from rdkit import Chem
-from lib.sugar_sequence import isolate_sugar_ring, get_rs_signature_core, RS_LIBRARY
+from lib.monosaccharide_identifier import isolate_sugar_ring, get_rs_signature_core, RS_LIBRARY
 
 cellobiose = "OC[C@H]1OC(O)[C@H](O)[C@@H](O)[C@@H]1OC1OC(CO)[C@@H](O)[C@H](O)[C@H]1O"
 mol = Chem.MolFromSmiles(cellobiose)

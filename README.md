@@ -22,105 +22,66 @@
   报告  ◄── Phase 7 ◄── Phase 6 ◄── Phase 5 ◄───────┘
 ```
 
-### Phase 1: 含糖筛选 (Sugar Filtering)
+### Phase 1: 含糖筛选 (Sugar Filtering) ✅
+从 COCONUT 全量数据库中筛选含糖化合物。基于 RDKit 糖环检测 (五元/六元含氧杂环 + 多羟基特征)，筛出 94,242 条，按 `standard_inchi_key` 严格去重。
 
-**解决的化学问题:** COCONUT 数据库有 40 万+化合物，大部分不含糖。我们需要精准筛出所有含糖苷的分子。
+### Phase 2: 糖-苷元精确切分 (Glycan–Aglycon Cleavage) ✅
+异头碳定位 → 糖苷键识别 → BFS 可达性判定 → 碳原子守恒断言。纯糖分子检测 (≥70% 重原子属于糖域时不切分)。
 
-**实现:** 基于 RDKit 的糖环检测 (五元/六元含氧杂环 + 多羟基特征)，从原始数据中筛选出 94,242 条含糖化合物，按 `standard_inchi_key` 严格去重。
+### Phase 3: 核苷酸糖 & 糖肽识别 (Nucleotide Sugar & Glycopeptide Detection) ✅
+SMARTS 匹配碱基 (嘌呤/嘧啶) + 磷酸基团共存检测。肽键明确排除 NAc (N-乙酰基) 甲基碳。
 
-**产出:** `Coconut_Sugar_Check.csv` — 全部后续分析的起点。
+### Phase 4: 分类学填补 (Taxonomy Enrichment) ⚠️
+LOTUS InChIKey 映射 + PubChem/GBIF 在线查询 + 240+ 植物属/50+ 真菌属/36+ 细菌属字典。当前 ~49.4% 化合物缺少 organism 信息。
 
----
+### Phase 5: 糖序列 & 苷元骨架提取 (Sugar Sequence & Scaffold Extraction) ✅
+**三层匹配引擎** (Tier 1: 绝对手性 → Tier 2: 异头碳特赦 → Tier 3: 模糊手性) + **CIP+Exo 指纹鉴定引擎** v2.0 + 虚拟脱修饰 + NLP 名称救援。120+ 参考糖全库。
 
-### Phase 2: 糖-苷元精确切分 (Glycan–Aglycon Cleavage)
+### Phase 6: 智能化学分类 (Intelligent Chemical Classification) ✅
+SMARTS 骨架规则 + 糖脂特异捕获 + Tanimoto 最近邻回退。
 
-**解决的化学问题:** 要分别研究糖链和苷元，必须在**正确的位置**切开分子。切错了（比如切断了 C5-C6 键），葡萄糖就变成了木糖，整个后续分析全废。
-
-**实现:**
-1. 定位异头碳 (Anomeric Carbon, C1)
-2. 识别 C1 发出的糖苷键 (C-O/C-N/C-S)
-3. 区分"糖-苷元键"和"糖-糖键"（保留糖链完整性）
-4. 碳原子守恒断言: C(糖) + C(苷元) = C(总)
-
-**产出:** `Glycan_SMILES` + `Aglycon_SMILES` — 保证原子不丢失的精确碎片。
-
----
-
-### Phase 3: 核苷酸糖 & 糖肽识别 (Nucleotide Sugar & Glycopeptide Detection)
-
-**解决的化学问题:** 某些含糖化合物不是普通的苷，而是**核苷酸糖** (如 UDP-Glc, GDP-Man) 或**糖肽** (如万古霉素类)。它们的生物学意义完全不同，需要独立标记。
-
-**实现:**
-- 核苷酸: 碱基 (嘌呤/嘧啶 SMARTS) + 磷酸基团 **必须共存**
-- 肽键: `[NX3]-C(=O)-[CX4;!CH3]` — 明确排除 NAc (N-乙酰基) 的甲基碳以防误判
-
-**产出:** `Has_Nucleotide`, `Has_Peptide` 布尔标志 + 详细信息列。
+### Phase 7: 可视化与报告 (Visualization & Reports) ✅
+三色高亮体系 (🔴糖环 / 🟡修饰 / 🔵苷元) + HTML/Excel 报告 + 糖苷键 α/β 标注。
 
 ---
 
-### Phase 4: 分类学填补 (Taxonomy Enrichment)
+## 核心引擎架构 (Core Engine Architecture)
 
-**解决的化学问题:** 要研究"为什么这种植物选择了这种糖"，我们需要知道**化合物来自哪个物种、哪个科属**。COCONUT 原始数据中有约 11% 的分类学字段缺失。
+```
+                    ┌──────────────────────────────────────┐
+                    │   lib/monosaccharide_identifier.py    │
+                    │   ── 单糖鉴定主引擎 v10 ──           │
+                    │   generate_refined_sequence()         │
+                    │    └→ identify_monosaccharide_v10()   │
+                    │        └→ identify_monosaccharide_v2()│
+                    └───────────────┬──────────────────────┘
+                                    │
+                ┌───────────────────┴──────────────────────┐
+                │                                          │
+    ┌───────────▼───────────┐          ┌───────────────────▼──────┐
+    │ lib/cip_exo_engine.py │          │ lib/virtual_demodify.py  │
+    │ CIP+Exo 指纹鉴定      │─────────→│ 虚拟脱修饰 (19 SMIRKS)   │
+    │ (walkSugarRing +      │          │ + 3 保护门               │
+    │  extractFingerprint)  │          └──────────────────────────┘
+    └───────────────────────┘
+                │
+    ┌───────────▼────────────────┐
+    │ lib/glycan_reference_      │
+    │    library.py              │
+    │ 120+ 参考糖 SMILES (KEGG)  │
+    └────────────────────────────┘
+```
 
-**实现:** 使用 LOTUS 数据库的 NP Classifier 超类信息，通过 InChIKey Block-1 映射精确填补空缺。
+### 公开 API (调用优先级)
 
-**产出:** 补全的 `np_classifier_superclass` + 物种来源 `organisms` 字段。
+| API | 用途 | 调用场景 |
+|-----|------|----------|
+| `generate_refined_sequence(mol)` | 完整糖序列 + 修饰格式化 | **生产管线** (V12/V13) |
+| `analyze_glycan(smiles)` | SMILES → 序列 (便捷包装) | 基准测试 / Demo |
+| `identify_monosaccharide_v10(mol, ring)` | 单环鉴定 (含 CIP/Exo + Rescue) | 调试 / 基准测试逐环分析 |
+| `identify_monosaccharide_v2(mol, ring)` | 基础匹配 (仅 SMARTS) | **仅供 v10 内部调用** |
 
----
-
-### Phase 5: 糖序列 & 苷元骨架提取 (Sugar Sequence & Scaffold Extraction)
-
-**解决的化学问题:** 把 SMILES 转化为化学家能看懂的语言。`OC[C@H]1OC(O)...` 需要变成 **"D-Glc-(α1→4)-D-Gal"**，苷元需要提取出 **Murcko 骨架**来做同族对比。
-
-**实现:**
-- 糖序列: 分层匹配 (精确单糖库 → 通用 Hex/Pen 兜底) + 连接键推断
-- 苷元骨架: Bemis-Murcko 分解, 直链脂肪烃标记为 `Aliphatic Chain`
-- Morgan 指纹: 2048-bit (radius=2), 用于 Phase 6 的 Tanimoto 回退
-
-**产出:** `Sugar_Sequence`, `Murcko_Scaffold`, Morgan 指纹向量。
-
----
-
-### Phase 6: 智能化学分类 (Intelligent Chemical Classification)
-
-**解决的化学问题:** 化合物的大类归属 (黄酮、甾体、生物碱...)。这决定了后续分析中"哪些化合物比较"的分组维度。
-
-**实现:**
-1. SMARTS 规则匹配 (黄酮、香豆素、生物碱、甾体)
-2. 糖脂特异捕获 (长链 C≥10 + 鞘氨醇/甘油骨架)
-3. Tanimoto 回退 (对 SMARTS 未命中的，用 Morgan 指纹找最近邻)
-4. Phase 3 覆盖: 核苷酸糖/糖肽强制归类
-
-**产出:** `Superclass`, `Classification_Method`, `Glycolipid_Flag`。
-
----
-
-### Phase 7: 可视化与报告 (Visualization & Reports)
-
-**解决的化学问题:** 让化学家 **用眼睛** 验证计算结果是否合理。一张错误的高亮图能立刻暴露切分 Bug。
-
-**实现:**
-- 三色高亮: 🔴 糖核心 / 🟡 修饰基团 / 🔵 苷元
-- BFS 洪水填充归属 (以糖苷键为边界，不是"环+1邻居")
-- HTML/Excel 报告嵌入 Base64 分子图
-
-**产出:** `Sample_Visual_Report.html`, 可内嵌的 PNG 分子图。
-
----
-
-## 糖链修饰扫描 (Glycan Modification Scanning)
-
-贯穿 Phase 2→7 的独立模块。仅扫描 **Glycan_SMILES** (不碰苷元), 识别 7 类修饰:
-
-| 修饰 | SMARTS Pattern | 化学意义 |
-|------|----------------|----------|
-| **NAc** | N-C(=O)-CH₃ | GlcNAc/GalNAc 标志 |
-| **O-Ac** | O-C(=O)-CH₃ | 乙酰化酯 |
-| **Sulfate** | O-SO₃⁻ | 硫酸化 (肝素等) |
-| **Phosphate** | O-PO₃²⁻ | 磷酸化 (Man-6-P) |
-| **O-Me** | O-CH₃ | 甲醚化 |
-| **COOH** | C(=O)OH | 羧基 (醛糖酸) |
-| **NH₂** | 游离氨基 | 氨基糖 |
+> ⚠️ **约定**: 所有新脚本必须使用 `generate_refined_sequence()` 或 `analyze_glycan()`。禁止直接调用 `v2`。
 
 ---
 
@@ -128,21 +89,70 @@
 
 ```
 D:\Glycan_Database\
-├── data/                      # 原始和中间数据
-├── lib/                       # 核心计算库
-│   ├── sugar_utils.py         # 糖环识别
-│   ├── glycosidic_cleavage.py # Phase 2: 精确切分
-│   ├── phase3_secondary_scan.py # Phase 3: 核苷酸/肽键
-│   ├── phase5_features.py     # Phase 5: 糖序列+骨架
-│   ├── phase6_classifier.py   # Phase 6: 智能分类
-│   ├── phase7_visualizer.py   # Phase 7: 三色可视化
-│   ├── glycan_modifications.py# 修饰基团 SMARTS 扫描
-│   └── chemical_dictionaries.py # 单糖/SMARTS 字典
-├── scripts/                   # 可执行脚本
-│   ├── run_glyconp_pipeline.py # 一键全量管线
-│   └── analyze_glycan_frequencies.py # 科学分析
-├── reports/                   # 输出报告
-└── tests/                     # 单元测试
+├── lib/                               # 🟢 核心算法层 (15 模块)
+│   ├── glycan_topology.py             #   糖环检测 + 拓扑验证 + 切分 (58KB)
+│   ├── monosaccharide_identifier.py   #   三层匹配 + CIP/Exo + Rescue (106KB)
+│   ├── glycan_reference_library.py    #   120+ 参考糖 SMILES/SMARTS (37KB)
+│   ├── cip_exo_engine.py             #   CIP+Exo 指纹鉴定引擎 (27KB)
+│   ├── virtual_demodify.py           #   虚拟脱修饰 + 保护门 (17KB)
+│   ├── bond_cleavage_engine.py       #   精确糖苷键切分 + 碳守恒 (15KB)
+│   ├── feature_extractor.py          #   Morgan FP + Murcko + 拓扑骨架 (16KB)
+│   ├── chemical_classifier.py        #   三层分类引擎 (SMARTS→Glycolipid→Tanimoto) (15KB)
+│   ├── molecular_visualizer.py       #   三色高亮 + 分子图渲染 (25KB)
+│   ├── stereochemistry_rescue.py     #   ChEMBL/LOTUS/Name rescue (16KB)
+│   ├── modification_scanner.py       #   14 SMARTS 修饰扫描 (7KB)
+│   ├── secondary_fragment_scanner.py  #   核苷酸/肽键检测 (9KB)
+│   ├── taxonomy_lotus_matcher.py      #   LOTUS 物种匹配 (11KB)
+│   └── taxonomy_online_resolver.py    #   PubChem/GBIF 在线查询 (20KB)
+│
+├── scripts/                           # 🔵 执行脚本层
+│   ├── run_v13_full_pipeline.py      #   V13 生产管线 (主入口)
+│   ├── run_v12_full_pipeline.py      #   V12.3 全量管线 (含 HTML 报告生成)
+│   ├── run_glyconp_pipeline.py       #   一键运行入口
+│   ├── run_full_refresh.py           #   全量刷新
+│   ├── run_benchmark_200_tier_a.py   #   226 条统一基准测试
+│   ├── run_audit_fixes.py            #   代码审计修复验证 + CSV 更新
+│   ├── rescue_generic_sugars.py      #   NLP 泛指糖救援 Phase 1 (A/C/D)
+│   ├── rescue_generic_sugars_phase2.py#  NLP 泛指糖救援 Phase 2 (E/F/G)
+│   ├── extract_saponins.py           #   Saponin 子数据库提取 + HTML 报告
+│   ├── batch_processor.py            #   批处理框架
+│   ├── generate_glyco_landscape.py   #   糖化学图谱可视化 (56KB)
+│   ├── generate_saponin_charts.py    #   Saponin 统计图
+│   └── nlp_literature_mining.py      #   文献 NLP 挖掘
+│
+├── tests/                             # 🟡 测试层 (30 files)
+│   ├── test_comprehensive_library.py #   参考库完整性测试
+│   ├── test_bug_fixes_regression.py  #   回归测试
+│   ├── test_precision_cleavage.py    #   精确切分测试
+│   └── ...
+│
+├── data/                              # 数据文件
+│   ├── Coconut.csv                   #   COCONUT 全量 (~692MB)
+│   ├── benchmark_unified.json        #   226 条统一基准集 (139KB)
+│   └── Ginsenoside.csv              #   人参皂苷专题数据
+│
+├── reports/                           # 输出报告
+│   ├── GlycoNP_Deep_Enriched_v13_Final.csv   # V13 终态数据库 (228MB)
+│   ├── GlycoNP_Deep_Enriched_v13_Pruned.csv  # V13 修剪版 (163MB)
+│   ├── GlycoNP_Saponin_DB_v13.csv           # Saponin 子库 (52MB)
+│   └── *.html                                # 可视化报告
+│
+├── log/                               # 日志
+├── docs/                              # 文档/演示
+├── CHANGE_LOG.md                      # 变更日志
+├── PROJECT_STATUS.md                  # 项目状态报告
+└── README.md                          # 本文件
+```
+
+---
+
+## 依赖关系规则 (Dependency Rules)
+
+```
+✅ scripts/ → lib/     (允许: 脚本调用核心库)
+✅ lib/     → lib/     (允许: 库之间互相调用)
+⚠️ scripts/ → scripts/ (有限允许: 仅限明确上下游, 如 V13 → V12)
+❌ lib/     → scripts/ (禁止: 核心库不得调用脚本层)
 ```
 
 ---
@@ -156,21 +166,38 @@ D:\Glycan_Database\
 | `tqdm` | ≥4.65 | 进度条 |
 | `xlsxwriter` | ≥3.0 | Excel 图片嵌入 |
 | `numpy` | ≥1.24 | 数值计算 |
+| `networkx` | ≥3.0 | 图遍历 (糖链拓扑) |
 
 ---
 
 ## 快速开始 (Quick Start)
 
 ```bash
-# 全量运行 (约 30 分钟)
-python scripts/run_glyconp_pipeline.py
+# 全量运行 V13 管线
+python scripts/run_v13_full_pipeline.py
+
+# V12.3 全量管线 (含 HTML 报告, 约 2 小时)
+python scripts/run_v12_full_pipeline.py
 
 # 限量测试 (1000 条, 约 20 秒)
 python scripts/run_glyconp_pipeline.py --limit 1000
 
-# 生成科学分析报告
-python scripts/analyze_glycan_frequencies.py
+# 226 条统一基准测试
+python scripts/run_benchmark_200_tier_a.py
+
+# 代码审计修复验证 + CSV 更新
+python scripts/run_audit_fixes.py
 ```
+
+---
+
+## 基准测试状态 (Benchmark Status)
+
+| 基准集 | 条目数 | 通过率 | 最后验证 |
+|--------|--------|--------|----------|
+| 统一基准集 (benchmark_unified.json) | 226 | 100% (226/226) | 2026-03-27 |
+| Tier A 天然产物 (PubChem) | 50 | 100% (50/50) | 2026-03-25 |
+| 1K 分层压力测试 | 900 | 0% 崩溃率, 97.2% 特异性 | 2026-03-26 |
 
 ---
 

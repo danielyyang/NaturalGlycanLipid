@@ -6,7 +6,7 @@ from rdkit import Chem
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../scripts")))
 
-from lib import sugar_utils
+from lib import glycan_topology
 import process_sugar
 
 def test_identify_extended_sugars():

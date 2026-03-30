@@ -12,7 +12,7 @@ import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from lib.phase5_features import (
+from lib.feature_extractor import (
     computeMorganFingerprint,
     extractMurckoScaffold,
     characterizeAglycon,

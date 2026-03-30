@@ -9,7 +9,7 @@ import pyarrow.parquet as pq
 # 绝对引入根目录库
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from lib.sugar_utils import find_mapped_sugar_units
+from lib.glycan_topology import find_mapped_sugar_units
 from lib.cleavage_engine import cleave_glycan_aglycan
 from lib.secondary_fragments import extract_secondary_motifs
 
@@ -101,7 +101,7 @@ def process_chunk(chunk):
                 g_mol = Chem.MolFromSmiles(glycan_smi)
                 if g_mol:
                     # 假定旧有 pipeline 提供此接口，保护性调用
-                    from lib.sugar_sequence import generate_refined_sequence
+                    from lib.monosaccharide_identifier import generate_refined_sequence
                     seq_str, mods_str = generate_refined_sequence(g_mol)
                     if seq_str: chunk.at[idx, 'Sugar_Sequence'] = seq_str
                     if mods_str: chunk.at[idx, 'Sugar_Functional_Group'] = mods_str

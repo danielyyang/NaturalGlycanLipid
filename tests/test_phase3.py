@@ -5,7 +5,7 @@ Phase 3 Test: Nucleotide + Peptide detection with anti-false-positive validation
 import sys, os, time
 sys.path.append("D:/Glycan_Database")
 import pandas as pd
-from lib.phase3_secondary_scan import (
+from lib.secondary_fragment_scanner import (
     detectNucleotideSugar, detectPeptideOrAminoAcid,
     scanSecondaryFragments, batchScanSecondary
 )

@@ -29,24 +29,28 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 # 优先级排序: 最长匹配优先, 避免 "glucoside" 误匹配 "galactoside"
 TEXT_MINING_RULES = [
     # 精确多字匹配 (Multi-word exact, highest priority)
+    # Highest priority: uronic acids & amino sugars
     (r'glucuronic\s*acid|glucuronide|glucuronosyl', 'D-GlcA'),
     (r'galacturonic\s*acid|galacturonide', 'D-GalA'),
     (r'N-acetylglucosamin|GlcNAc', 'D-GlcNAc'),
     (r'N-acetylgalactosamin|GalNAc', 'D-GalNAc'),
     (r'neuraminic|sialic|Neu5Ac|NeuAc', 'Neu5Ac'),
 
-    # 精确单糖名 (Exact monosaccharide names)
-    (r'glucopyranosid|glucosid|glucosyl|\bgluco(?:se)?\b', 'D-Glc'),
-    (r'galactopyranosid|galactosid|galactosyl|\bgalacto(?:se)?\b', 'D-Gal'),
-    (r'mannopyranosid|mannosid|mannosyl|\bmanno(?:se)?\b', 'D-Man'),
-    (r'xylopyranosid|xylosid|xylosyl|\bxylo(?:se)?\b', 'D-Xyl'),
-    (r'arabinopyranosid|arabinosid|arabinosyl|\barabino(?:se)?\b', 'L-Ara'),
-    (r'rhamnopyranosid|rhamnosid|rhamnosyl|\brhamno(?:se)?\b', 'L-Rha'),
-    (r'fucopyranosid|fucosid|fucosyl|\bfuco(?:se)?\b', 'L-Fuc'),
-    (r'ribopyranosid|ribosid|ribosyl|\bribo(?:se)?\b', 'D-Rib'),
-    (r'fructopyranosid|fructosid|fructosyl|\bfructo(?:se)?\b', 'D-Fru'),
+    # 精确单糖名 + 复合词根匹配 (Exact names + compound word roots)
+    # v12 增强: 移除 \b 限制, 改用包含匹配, 确保 glucosinolate 等复合词可识别
+    # v12 enhanced: removed \b constraints, use containment matching
+    # to handle compounds like glucosinolate, galactolipid, mannoprotein
+    (r'glucopyranosid|glucosinolat|glucosid|glucosyl|glucofuranos|gluco(?:se)?(?![a-z])', 'D-Glc'),
+    (r'galactopyranosid|galactolipid|galactosid|galactosyl|galacto(?:se)?(?![a-z])', 'D-Gal'),
+    (r'mannopyranosid|mannoprotein|mannosid|mannosyl|manno(?:se)?(?![a-z])', 'D-Man'),
+    (r'xylopyranosid|xylosid|xylosyl|xylan|xylo(?:se)?(?![a-z])', 'D-Xyl'),
+    (r'arabinopyranosid|arabinosid|arabinosyl|arabinan|arabino(?:se)?(?![a-z])', 'L-Ara'),
+    (r'rhamnopyranosid|rhamnosid|rhamnosyl|rhamno(?:se)?(?![a-z])', 'L-Rha'),
+    (r'fucopyranosid|fucosid|fucosyl|fucoidan|fuco(?:se)?(?![a-z])', 'L-Fuc'),
+    (r'ribopyranosid|ribosid|ribosyl|ribo(?:se)?(?![a-z])', 'D-Rib'),
+    (r'fructopyranosid|fructosid|fructosyl|fructan|fructo(?:se)?(?![a-z])', 'D-Fru'),
 
-    # 脱氧糖特异名 (Deoxy sugar specific)
+    # 脱氧糖特异名 (Deoxy sugar specific names)
     (r'digitalosid|digitalose', 'D-Dig'),
     (r'oleandrosid|oleandrose', 'L-Ole'),
     (r'cymarosid|cymarose', 'D-Cym'),

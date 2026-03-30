@@ -149,13 +149,13 @@ def main():
     print("=" * 70)
     generateMockLotus(coconutCsv, mockOutput, sampleSize=1000)
 
-    # Step 2: 使用 local_taxonomy.py 进行匹配测试
+    # Step 2: 使用 taxonomy_lotus_matcher.py 进行匹配测试
     print()
     print("=" * 70)
     print("[Step 2] Running Local Taxonomy Filling with Mock Data...")
     print("=" * 70)
 
-    from lib.local_taxonomy import loadLotusDump, fillTaxonomyFromLotus
+    from lib.taxonomy_lotus_matcher import loadLotusDump, fillTaxonomyFromLotus
 
     startTime = time.time()
 

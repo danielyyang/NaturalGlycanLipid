@@ -3,7 +3,7 @@ Targeted test: sample NAMED compounds missing organism to assess API hit rate.
 """
 import os, sys, pandas as pd
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from lib.taxonomy_gap_filling import (
+from lib.taxonomy_online_resolver import (
     get_organism_from_coconut, get_organism_from_wikidata,
     get_organism_from_pubchem, get_organism_from_wikipedia
 )

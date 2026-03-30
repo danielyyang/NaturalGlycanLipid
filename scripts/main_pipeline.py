@@ -6,10 +6,11 @@ from rdkit import Chem
 from tqdm import tqdm
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from lib import sugar_utils
-from lib.visualizer import StructureVisualizer
-from lib import taxonomy_gap_filling
-from lib import sugar_sequence
+from lib import glycan_topology
+# [REMOVED] Dead import — lib.visualizer no longer exists
+# Visualization is now handled by lib.molecular_visualizer
+from lib import taxonomy_online_resolver
+from lib import monosaccharide_identifier
 from rdkit.Chem.Scaffolds import MurckoScaffold
 import shutil
 
@@ -143,7 +144,7 @@ def main():
     
     # --- [Phase 4] Taxonomy Imputation ---
     print("--- [Phase 4] Taxonomy Imputation ---")
-    df_result, tax_imputed = taxonomy_gap_filling.fill_taxonomy_online(df_result)
+    df_result, tax_imputed = taxonomy_online_resolver.fill_taxonomy_online(df_result)
     
     # --- [Phase 5] Scaffold & Sequence ---
     print("--- [Phase 5] Scaffold & Sequence ---")
@@ -201,12 +202,12 @@ def main():
     df_result['chemical_super_class'] = df_result['chemical_super_class'].fillna('No Classified')
     df_result.loc[df_result['chemical_super_class'].str.strip() == '', 'chemical_super_class'] = 'No Classified'
     
-    df_result, class_imputed = taxonomy_gap_filling.fill_classification(df_result)
+    df_result, class_imputed = taxonomy_online_resolver.fill_classification(df_result)
     
     # P6 二级分类填补: np_classifier_superclass
     # (P6 Secondary classification: fill np_classifier_superclass via same strategy)
     print("--- [Phase 6b] NP Classifier Superclass Imputation ---")
-    df_result, np_imputed = taxonomy_gap_filling.fill_np_classifier(df_result)
+    df_result, np_imputed = taxonomy_online_resolver.fill_np_classifier(df_result)
     
     excel_classification = os.path.join(reports_dir, "Coconut_Classification.xlsx")
     print(f"Exporting classification sheets to {excel_classification}...")

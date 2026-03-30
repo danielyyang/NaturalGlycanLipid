@@ -3,7 +3,7 @@ from rdkit import Chem
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from lib import sugar_utils
+from lib import glycan_topology
 
 df = pd.read_csv("data/Coconut.csv", nrows=100)
 df_sugar = df[df['contains_sugar'].astype(str).str.lower() == 'true'].copy()

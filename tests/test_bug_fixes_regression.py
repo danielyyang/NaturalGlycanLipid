@@ -29,8 +29,8 @@ class TestSulfateColoring:
 
     def test_sulfate_glucosamine_in_glycan_zone(self):
         """6-O-Sulfate-GlcNAc: 所有 S 和 =O 原子应在 glycanAtoms 中"""
-        from phase7_visualizer import identifySugarAtomZones
-        from sugar_utils import find_mapped_sugar_units
+        from molecular_visualizer import identifySugarAtomZones
+        from glycan_topology import find_mapped_sugar_units
 
         # 6-O-Sulfate-GlcNAc [TEST DATA ONLY]
         smiles = "O=S(=O)(O)OC[C@H]1OC(O)[C@H](NC(=O)C)[C@@H](O)[C@@H]1O"
@@ -66,8 +66,8 @@ class TestSulfateColoring:
 
     def test_phosphate_mannose_in_glycan_zone(self):
         """Man-6-P: P 和 =O 应在 glycanAtoms 中"""
-        from phase7_visualizer import identifySugarAtomZones
-        from sugar_utils import find_mapped_sugar_units
+        from molecular_visualizer import identifySugarAtomZones
+        from glycan_topology import find_mapped_sugar_units
 
         # Man-6-phosphate [TEST DATA ONLY]
         smiles = "O=P(O)(O)OC[C@H]1OC(O)[C@@H](O)[C@@H](O)[C@@H]1O"
@@ -96,8 +96,8 @@ class TestAglyconPresence:
 
     def test_rutin_has_aglycon(self):
         """芦丁 (Rutin) 应有查耳酮苷元"""
-        from phase7_visualizer import identifySugarAtomZones, cleaveAndCap
-        from sugar_utils import find_mapped_sugar_units
+        from molecular_visualizer import identifySugarAtomZones, cleaveAndCap
+        from glycan_topology import find_mapped_sugar_units
 
         RUTIN = "C[C@@H]1OC(OC[C@H]2OC(Oc3c(-c4ccc(O)c(O)c4)oc4cc(O)cc(O)c4c3=O)C(O)C(O)C2O)C(O)C(O)C1O"
         mol = Chem.MolFromSmiles(RUTIN)
@@ -114,8 +114,8 @@ class TestAglyconPresence:
 
     def test_ginsenoside_has_aglycon(self):
         """人参皂苷 Rg1 应有达玛烷苷元"""
-        from phase7_visualizer import identifySugarAtomZones, cleaveAndCap
-        from sugar_utils import find_mapped_sugar_units
+        from molecular_visualizer import identifySugarAtomZones, cleaveAndCap
+        from glycan_topology import find_mapped_sugar_units
 
         RG1 = "C[C@]12CC[C@H]3[C@H]([C@@H]1CC[C@@]2(O)C[C@@H](C)O[C@@H]4O[C@H](CO)[C@@H](O)[C@H](O)[C@H]4O)C[C@H](O)[C@@H]5[C@@]3(C)CC[C@H](C5(C)C)O[C@@H]6O[C@H](CO)[C@@H](O)[C@H](O)[C@H]6O"
         mol = Chem.MolFromSmiles(RG1)
@@ -140,7 +140,7 @@ class TestSubstituentThreshold:
 
     def test_large_branch_is_aglycone(self):
         """自创含 12 原子碳链的糖苷, 该链应归入 aglycone"""
-        from sugar_utils import classify_sugar_parts
+        from glycan_topology import classify_sugar_parts
 
         # 简单 Glc + 十二碳链 [TEST DATA ONLY]
         # OC[C@H]1OC(OCCCCCCCCCCCC)C(O)C(O)C1O — 糖苷 + C12 链
@@ -159,7 +159,7 @@ class TestSubstituentThreshold:
 
     def test_small_branch_is_substituent(self):
         """乙酰基 (4 原子) 应归入修饰基团"""
-        from sugar_utils import classify_sugar_parts
+        from glycan_topology import classify_sugar_parts
 
         # 2,3-di-O-Acetyl-Glucose [TEST DATA ONLY]
         smiles = "OC[C@H]1OC(O)[C@H](OC(=O)C)[C@@H](OC(=O)C)[C@@H]1O"
@@ -186,8 +186,8 @@ class TestCarbonCountDepthLimit:
 
     def test_pentose_not_classified_as_nonose(self):
         """五元环糖 + 长碳链苷元: 糖碳计数不应超过 5-6"""
-        from sugar_sequence import _countFragmentCarbons
-        from sugar_utils import find_mapped_sugar_units
+        from monosaccharide_identifier import _countFragmentCarbons
+        from glycan_topology import find_mapped_sugar_units
 
         # D-Rib + 长碳链苷元 (模拟类胡萝卜素糖苷) [TEST DATA ONLY]
         # 使用简单的 Ribose + 十碳链
@@ -211,8 +211,8 @@ class TestCarbonCountDepthLimit:
 
     def test_hexose_carbon_count_reasonable(self):
         """六元环 Glc + 长碳链: 碳计数不应超过 8"""
-        from sugar_sequence import _countFragmentCarbons
-        from sugar_utils import find_mapped_sugar_units
+        from monosaccharide_identifier import _countFragmentCarbons
+        from glycan_topology import find_mapped_sugar_units
 
         # Glc + C20 链 [TEST DATA ONLY]
         smiles = "OC[C@H]1OC(OCCCCCCCCCCCCCCCCCCCC)[C@H](O)[C@@H](O)[C@@H]1O"
@@ -235,7 +235,7 @@ class TestCarbonCountDepthLimit:
 
     def test_sialic_acid_carbon_count_correct(self):
         """唾液酸 (Neu5Ac, 9C) 应正确计数为 ≤9"""
-        from sugar_sequence import _countFragmentCarbons
+        from monosaccharide_identifier import _countFragmentCarbons
 
         # Neu5Ac [TEST DATA ONLY]
         smiles = "O=C(O)[C@@]1(O)C[C@H](O)[C@@H](NC(=O)C)[C@@H](O1)[C@@H](O)[C@@H](O)CO"
@@ -271,7 +271,7 @@ class TestThresholdConsistency:
     def test_max_substituent_size_value(self):
         """classify_sugar_parts 的 MAX_SUBSTITUENT_SIZE 应为 10"""
         # 间接验证: 11 原子分支应归入 aglycone
-        from sugar_utils import classify_sugar_parts
+        from glycan_topology import classify_sugar_parts
 
         smiles = "OC[C@H]1OC(OCCCCCCCCCCC)[C@H](O)[C@@H](O)[C@@H]1O"
         mol = Chem.MolFromSmiles(smiles)

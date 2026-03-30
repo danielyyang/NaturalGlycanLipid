@@ -16,9 +16,10 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from lib.aggregator import DataAggregator
 from lib.profiler import PropertyProfiler
-from lib.visualizer import StructureVisualizer
+# [REMOVED] Dead import — lib.visualizer no longer exists
+# Visualization is now handled by lib.molecular_visualizer
 from lib.researcher import LiteratureResearcher
-from lib import sugar_utils
+from lib import glycan_topology
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

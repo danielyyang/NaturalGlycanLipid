@@ -14,8 +14,8 @@ import pytest
 from rdkit import Chem
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from lib.sugar_utils import find_mapped_sugar_units
-from lib.sugar_sequence import identify_monosaccharide_v2
+from lib.glycan_topology import find_mapped_sugar_units
+from lib.monosaccharide_identifier import identify_monosaccharide_v2
 
 
 # ==========================================================================
@@ -186,7 +186,7 @@ class TestLibraryCoverage:
 
     def test_all_smiles_parseable(self):
         """所有库中 SMILES 必须可被 RDKit 成功解析"""
-        from lib.sugar_sequence import RAW_MONOSACCHARIDE_SMILES
+        from lib.monosaccharide_identifier import RAW_MONOSACCHARIDE_SMILES
         failedEntries = []
         for (name, anomer), smiles in RAW_MONOSACCHARIDE_SMILES.items():
             mol = Chem.MolFromSmiles(smiles)
@@ -197,13 +197,13 @@ class TestLibraryCoverage:
 
     def test_library_has_minimum_entries(self):
         """库中应至少有 70 个条目"""
-        from lib.sugar_sequence import RAW_MONOSACCHARIDE_SMILES
+        from lib.monosaccharide_identifier import RAW_MONOSACCHARIDE_SMILES
         assert len(RAW_MONOSACCHARIDE_SMILES) >= 70, \
             f"期望 >= 70 条目，实际 {len(RAW_MONOSACCHARIDE_SMILES)}"
 
     def test_all_reference_mols_valid(self):
         """所有预编译 Query 分子必须有效"""
-        from lib.sugar_sequence import REFERENCE_MOLS
+        from lib.monosaccharide_identifier import REFERENCE_MOLS
         failedEntries = []
         for (name, anomer), mol in REFERENCE_MOLS.items():
             if mol is None:
@@ -211,21 +211,17 @@ class TestLibraryCoverage:
         assert len(failedEntries) == 0, \
             f"以下 Query 分子编译失败:\n" + "\n".join(failedEntries)
 
-    def test_smarts_library_parseable(self):
-        """chemical_dictionaries.py 中所有 SMARTS 必须可被 RDKit 解析"""
-        from lib.chemical_dictionaries import MONOSACCHARIDE_LIBRARY
-        failedEntries = []
-        for name, pat in MONOSACCHARIDE_LIBRARY.items():
-            if pat is None:
-                failedEntries.append(name)
-        assert len(failedEntries) == 0, \
-            f"以下 SMARTS 无法解析:\n" + "\n".join(failedEntries)
+    def test_smarts_library_deprecated(self):
+        """MONOSACCHARIDE_LIBRARY 已废弃, 应为空字典"""
+        from lib.glycan_reference_library import MONOSACCHARIDE_LIBRARY
+        assert isinstance(MONOSACCHARIDE_LIBRARY, dict), \
+            "MONOSACCHARIDE_LIBRARY should remain as empty dict for backward compat"
 
-    def test_smarts_library_minimum_entries(self):
-        """SMARTS 库中应至少有 15 个条目"""
-        from lib.chemical_dictionaries import MONOSACCHARIDE_LIBRARY
-        assert len(MONOSACCHARIDE_LIBRARY) >= 15, \
-            f"期望 >= 15 SMARTS 条目，实际 {len(MONOSACCHARIDE_LIBRARY)}"
+    def test_reference_mols_minimum_entries(self):
+        """REFERENCE_MOLS 中应至少有 70 个条目"""
+        from lib.glycan_reference_library import REFERENCE_MOLS
+        assert len(REFERENCE_MOLS) >= 70, \
+            f"期望 >= 70 REFERENCE_MOLS 条目，实际 {len(REFERENCE_MOLS)}"
 
 
 if __name__ == "__main__":

@@ -15,7 +15,7 @@ from tqdm import tqdm
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "lib")))
 
-from lib.stereo_rescue import rescueSugarSequence, GENERIC_SUGAR_LABELS
+from lib.stereochemistry_rescue import rescueSugarSequence, GENERIC_SUGAR_LABELS
 
 
 def main():

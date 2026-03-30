@@ -145,7 +145,7 @@ def isolate_sugar_ring(mol, ring_atoms):
             
     return None
 
-import lib.sugar_sequence as seq
+import lib.monosaccharide_identifier as seq
 
 print("Testing Virtual Hydrolysis Approach 4:")
 clean_rings = []

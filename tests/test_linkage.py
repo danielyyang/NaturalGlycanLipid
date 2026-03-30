@@ -3,8 +3,8 @@ from rdkit import Chem
 
 import traceback
 sys.path.append(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
-from lib import sugar_utils
-from lib import sugar_sequence
+from lib import glycan_topology
+from lib import monosaccharide_identifier
 
 # [TEST DATA ONLY]
 TEST_CASES = {

@@ -7,7 +7,7 @@ import pandas as pd
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from rdkit import Chem
-from lib.phase6_classifier import (
+from lib.chemical_classifier import (
     classifyAglycon,
     buildReferenceFingerprints,
 )

@@ -4,7 +4,7 @@ Test isolating a sugar ring and hydrolyzing its attachments to restore monomer C
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__))))
 from rdkit import Chem
-from lib.sugar_sequence import get_rs_signature_core
+from lib.monosaccharide_identifier import get_rs_signature_core
 
 def isolate_and_hydrolyze(mol, ring_atoms):
     """

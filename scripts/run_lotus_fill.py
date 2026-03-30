@@ -1,7 +1,7 @@
 """Run LOTUS metadata taxonomy fill with full taxonomy columns."""
 import os, sys, time, pandas as pd
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from lib.local_taxonomy import loadLotusDump, fillTaxonomyFromLotus
+from lib.taxonomy_lotus_matcher import loadLotusDump, fillTaxonomyFromLotus
 
 baseDir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 lotusPath = os.path.join(baseDir, "data", "230106_frozen_metadata.csv.gz")

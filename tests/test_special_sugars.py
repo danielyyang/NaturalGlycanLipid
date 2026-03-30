@@ -7,7 +7,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from rdkit import Chem
-from lib.sugar_utils import find_mapped_sugar_units
+from lib.glycan_topology import find_mapped_sugar_units
 
 # [PubChem Verified SMILES Dictionary] 
 test_cases = {

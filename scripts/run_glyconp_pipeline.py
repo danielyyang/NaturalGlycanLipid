@@ -25,12 +25,12 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from rdkit import Chem
 
-from lib.sugar_utils import find_mapped_sugar_units
-from lib.glycosidic_cleavage import cleaveWithConservation
-from lib.phase3_secondary_scan import scanSecondaryFragments
-from lib.phase5_features import characterizeGlycan, extractMurckoScaffold
-from lib.phase6_classifier import classifyAglycon, buildReferenceFingerprints
-from lib.glycan_modifications import scanAndFormat as scanGlycanMods
+from lib.glycan_topology import find_mapped_sugar_units
+from lib.bond_cleavage_engine import cleaveWithConservation
+from lib.secondary_fragment_scanner import scanSecondaryFragments
+from lib.feature_extractor import characterizeGlycan, extractMurckoScaffold
+from lib.chemical_classifier import classifyAglycon, buildReferenceFingerprints
+from lib.modification_scanner import scanAndFormat as scanGlycanMods
 
 
 # =====================================================================
@@ -203,7 +203,7 @@ def runPipeline(
     if generateReport:
         reportPath = outputPath.replace(".csv", "_Report.html")
         print(f"\n[Phase 7] Generating HTML report: {reportPath}")
-        from lib.phase7_visualizer import generateHtmlReport
+        from lib.molecular_visualizer import generateHtmlReport
         generateHtmlReport(
             df, reportPath,
             smilesCol=smilesCol,

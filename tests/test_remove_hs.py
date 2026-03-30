@@ -1,6 +1,6 @@
 import sys, os
 from rdkit import Chem
-from lib.sugar_sequence import get_rs_signature_core
+from lib.monosaccharide_identifier import get_rs_signature_core
 
 maltose = "O[C@H]1[C@H](O)[C@@H](O)[C@H](O[C@H]2[C@H](O)[C@@H](O)[C@H](O)[C@@H](CO)O2)[C@@H](CO)O1"
 mol = Chem.MolFromSmiles(maltose)
@@ -8,7 +8,7 @@ Chem.AssignStereochemistry(mol, force=True, cleanIt=True)
 ri = mol.GetRingInfo()
 
 ring0 = ri.AtomRings()[0]
-from lib.sugar_sequence import isolate_sugar_ring
+from lib.monosaccharide_identifier import isolate_sugar_ring
 clean, mapping = isolate_sugar_ring(mol, list(ring0))
 print("Before RemoveHs:")
 print(Chem.MolToSmiles(clean, isomericSmiles=True))

@@ -7,9 +7,9 @@ import pandas as pd
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from rdkit import Chem
-from lib.glycan_modifications import scanGlycanModifications, scanAndFormat
-from lib.sugar_utils import find_mapped_sugar_units
-from lib.glycosidic_cleavage import cleaveWithConservation
+from lib.modification_scanner import scanGlycanModifications, scanAndFormat
+from lib.glycan_topology import find_mapped_sugar_units
+from lib.bond_cleavage_engine import cleaveWithConservation
 
 
 def header(title):

@@ -187,7 +187,7 @@ def main():
         print(f"SUCCESS! Downloaded {finalSize:.1f} MB to {outputPath}")
         print(f"{'=' * 70}")
         print(f"\nNext step — run taxonomy filling:")
-        print(f"  python -c \"from lib.local_taxonomy import runLocalTaxonomyFilling; "
+        print(f"  python -c \"from lib.taxonomy_lotus_matcher import runLocalTaxonomyFilling; "
               f"runLocalTaxonomyFilling('reports/Coconut_Sugar_Check.csv', "
               f"'data/230106_frozen_metadata.csv.gz', "
               f"'reports/Coconut_Sugar_WithTax.csv')\"")

@@ -5,7 +5,7 @@ get_rs_signature_core produces when parsing maltose SMILES.
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__))))
 from rdkit import Chem
-from lib.sugar_sequence import get_rs_signature_core, SUGAR_SMILES_LIB
+from lib.monosaccharide_identifier import get_rs_signature_core, SUGAR_SMILES_LIB
 
 print("\n=== Testing on Maltose ===")
 maltose = "OC[C@H]1OC(O)[C@H](O)[C@@H](O)[C@@H]1O[C@H]1OC(CO)[C@@H](O)[C@H](O)[C@H]1O"

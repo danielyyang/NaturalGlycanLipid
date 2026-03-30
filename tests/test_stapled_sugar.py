@@ -5,7 +5,7 @@ from rdkit import Chem
 # 绝对引入根目录库 (Absolute import root libraries)
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from lib.sugar_utils import find_mapped_sugar_units
+from lib.glycan_topology import find_mapped_sugar_units
 
 def test_stapled_macrocycle():
     """

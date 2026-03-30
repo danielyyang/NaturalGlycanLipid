@@ -13,7 +13,7 @@ import pytest
 from rdkit import Chem
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from lib.sugar_utils import find_mapped_sugar_units
+from lib.glycan_topology import find_mapped_sugar_units
 
 
 class TestUnsaturatedRejection:

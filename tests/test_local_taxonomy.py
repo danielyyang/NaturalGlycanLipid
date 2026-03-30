@@ -24,7 +24,7 @@ import pytest
 import pandas as pd
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from lib.local_taxonomy import loadLotusDump, fillTaxonomyFromLotus
+from lib.taxonomy_lotus_matcher import loadLotusDump, fillTaxonomyFromLotus
 
 
 # =====================================================================

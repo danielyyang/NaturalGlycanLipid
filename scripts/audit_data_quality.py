@@ -326,7 +326,7 @@ def main():
     mdLines.append("> Based on audit results:\n")
     mdLines.append(
         "1. **Sugar Precision**: If fallback (Hex/dHex/Pen) ratio is high, "
-        "expand the monosaccharide reference library in `lib/sugar_sequence.py`.\n")
+        "expand the monosaccharide reference library in `lib/monosaccharide_identifier.py`.\n")
     mdLines.append(
         "2. **Tiny Aglycons**: Compounds with HA ≤ 5 aglycons should be "
         "reviewed — they may be free sugar derivatives, not true glycosides.\n")

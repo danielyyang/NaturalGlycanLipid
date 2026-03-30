@@ -5,9 +5,9 @@ Verifies carbon conservation and correct sugar identification
 import os, sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from rdkit import Chem
-from lib.sugar_utils import find_mapped_sugar_units
-from lib.glycosidic_cleavage import cleaveWithConservation, findGlycosidicBonds, findAnomericCarbons
-from lib.phase5_features import processPhase5Row
+from lib.glycan_topology import find_mapped_sugar_units
+from lib.bond_cleavage_engine import cleaveWithConservation, findGlycosidicBonds, findAnomericCarbons
+from lib.feature_extractor import processPhase5Row
 
 
 def header(title):

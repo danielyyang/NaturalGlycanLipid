@@ -35,7 +35,7 @@ def auditLColOverflow(df: pd.DataFrame) -> Dict[str, int]:
     Diagnose and fix the L-Col 9.5% false-positive rate.
 
     根因分析 (Root Cause):
-      L-Colitose (3,6-dideoxy-L-xylo-hexose) 在 sugar_sequence.py 中的
+      L-Colitose (3,6-dideoxy-L-xylo-hexose) 在 monosaccharide_identifier.py 中的
       SMILES 定义为 C[C@H]1[C@H](O)C[C@@H](O)[C@H](O)O1。
       核心问题: C3 位置是裸 'C'（仅一个 CH2）, 没有任何取代基约束。
       由于 RDKit 子结构匹配默认允许取代, 这个 CH2 会匹配任何
