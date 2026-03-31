@@ -42,7 +42,13 @@ from lib.pipeline_utils import (
 
 def run_molecule(row):
     """
-    Worker function to process a single molecule for multiprocessing Pool.
+    [EN] Worker function to process a single molecule for multiprocessing Pool.
+         Executes the core pipeline constraints: Cleavage -> Topology -> NLP Rescue.
+         Avoids global states to ensure thread safety during high-throughput execution.
+         
+    [CN] 多线程池处理单分子的工作函数。
+         严格按照 剥离 -> 拓扑解析 -> NLP保底 的生命周期执行。
+         隔离全局变量以确保在大规模高通量并发时的线程安全。
     """
     res = {
         'identifier': row.get('identifier', ''),
@@ -128,7 +134,10 @@ def run_molecule(row):
         if name_extracted_sugar and bool(GENERIC_PAT.search(final_seq)):
             final_seq = re.sub(r'\b(Hex|Pen|dHex)\b', f"{name_extracted_sugar}(Rescue)", final_seq)
             
-        # Anti-regression logic: Protect previous non-generic specific identifications from degrading into Hex
+        # Anti-regression logic: 
+        # [EN] Protect previous non-generic specific identifications from degrading into Hex.
+        # [CN] 防回退逻辑：如果新的 2D 重算结果由于手性缺失降级为泛指糖 (Hex)，
+        #      但原有管线数据保留了具体糖名（如 D-Glc），则强制沿用有效的高质量就数据。
         oldSeq = str(row.get('Sugar_Sequence', ''))
         if oldSeq and oldSeq not in ("nan", "None", ""):
             newHasGeneric = bool(GENERIC_PAT.search(final_seq))
@@ -157,7 +166,10 @@ def run_molecule(row):
 
 
 def print_stats(df):
-    """Print sequence distribution summary."""
+    """
+    [EN] Print sequence distribution summary. Extracts all sugar tags to calculate Generic vs Specific ratios.
+    [CN] 序列分布统计台打印。通过正则抽提所有糖标签，计算泛指糖与具体糖的占比以供质量审核。
+    """
     print("\n" + "=" * 70)
     print("  Pipeline Output Statistics")
     print("=" * 70)

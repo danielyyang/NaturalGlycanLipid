@@ -1,18 +1,19 @@
 """
-pipeline_utils.py — GlycoNP 管线核心可复用函数库
-Pipeline Core Utilities — reusable functions shared across all pipeline scripts.
+[EN] Pipeline Core Utilities (pipeline_utils.py)
+     Reusable structural functions shared across all pipeline scripts.
+     Contains the data stripping rules and encapsulation logic:
+       - Natural Language Processing (NLP) fallback extraction.
+       - Rare sugar cross-validation against stereochemical limits.
+       - Inter-sugar and Aglycone-sugar Glycosidic bond Directional computations.
+       - Universal SVG/PNG 3-color structural rendering.
 
-从 run_v12_full_pipeline.py 提取的核心逻辑:
-Core logic extracted from run_v12_full_pipeline.py:
-  - NLP 糖名提取 (extractSugarFromName)
-  - 罕见糖交叉验证 (crossValidateRareSugars)
-  - 异头碳查找 (_findAnomericCarbon)
-  - 多糖苷键检测 (detectAllGlycosidicBonds)
-  - 物种类型推断 (inferOrganismType)
-  - 纯糖分子检测 (_checkPureSugarMolecule)
-  - 分子渲染 (molToBase64Png, molToHighlightedBase64Png)
-
-[TEST DATA ONLY] - GlycoNP Project
+[CN] GlycoNP 管线核心抽象运算库 (pipeline_utils.py)
+     从 V12/V13 主干提炼的通用剥离与合并规则，供所有脚本公共调用。
+     核心涵盖：
+       - 基于名称的 NLP 糖类救援与罕见糖基纠错。
+       - 基于立体化学树的异头碳 C1 寻路与断键向量生成。
+       - 识别并切除多修饰基团的尺寸控制逻辑 (SizeThreshold <= 3)。
+       - 自动化三色高亮渲染输出：糖(红), 修饰(黄), 苷元(蓝)。
 """
 import re
 import json

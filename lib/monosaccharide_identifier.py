@@ -1,3 +1,17 @@
+"""
+[EN] RDKit Virtual Hydrolase & Monosaccharide Identity Engine
+     Acts as the core analytical brain of the GlycoNP-Pipeline.
+     Features:
+      - Virtual structural cleavage (`RwMol`) to uncouple sugar units from aglycones without SMILES string corruption.
+      - A comprehensive 3-Tier SMARTS stereochemical matching engine relying on over 120 reference templates.
+      - Aggressive chirality checking falling back to rigorous generic labels (Hex, Pen) when explicitly 2D. 
+
+[CN] RDKit 虚拟水解酶与单糖深度识别引擎
+     整个 GlycoNP 管线的核心“鉴定大脑”。具备如下功能：
+      - 利用 `RWMol` 构建虚拟分步水解操作，剥离糖环与其他结构并保持拓扑守恒。
+      - 3 级 SMARTS 立体匹配模型：在超过 120+ 黄金模板上实施精确手性比对。
+      - 当输入的 SMILES 确实剥夺了手性纵深时，严格拒绝利用骨架猜想，降级返回至科学准确的 Hex/Pen 集合。
+"""
 import sys
 import os
 import pandas as pd

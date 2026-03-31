@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """
 ==========================================================================
-  GlycoNP Saponin Database — Comprehensive Statistical Charts Generator
-  All charts output as interactive HTML (Plotly) with white backgrounds.
-  Input:  reports/GlycoNP_Saponin_DB_v13.csv
+  [EN] GlycoNP Saponin Database — Universal Statistical Charts Generator
+       Aggregates parsing logic to generate 40+ Plotly interactive HTMLs 
+       and corresponding high-resolution static PNGs.
+  [CN] GlycoNP 皂苷子库 — 全局可视化学科研级图谱生成器 
+       集成了 40余张 高阶互动HTML 图谱生成的全域脚本。
+       
+  Input:  reports/GlycoNP_Saponin_DB.csv (Version-agnostic)
   Output: reports/saponin_figures/
 ==========================================================================
 """

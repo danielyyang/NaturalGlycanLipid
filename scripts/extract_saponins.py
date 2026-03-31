@@ -1,8 +1,15 @@
 """
 extract_saponins.py
 ===================
-Extracts all Saponin-class natural products from the V13 database and generates
-a focused dataset and HTML visual report matching the GlycoNP Debug Report style.
+[EN] GlycoNP Saponin Exporter
+     Domain-specific script to extract and visualize Saponin-class molecules 
+     from the global natural product dataset. It builds a user-friendly HTML 
+     report containing structural badges, interactive 2D renderings, and literature DOIs.
+
+[CN] GlycoNP 皂苷专属提取器与可视化生成管线
+     基于在全量天然产物数据库中的挖掘，本脚本专业提取“皂苷(Saponin)”门类（包括
+     三萜类与甾体类皂苷）。通过生成带有直观结构徽章 (Badges)、糖断键图以及 2D
+     RDKit 渲染图的 HTML 专家级交互报告，为化学工作者提供复核依据。
 
 [TEST DATA ONLY] - GlycoNP Project
 """

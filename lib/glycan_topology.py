@@ -10,11 +10,17 @@ from rdkit import Chem
 
 def strip_and_record_modifications(sugar_mol):
     """
+    [EN] 3-Hop Modification Scanner & Virtual Demodifier.
     Identifies and records modifications on the sugar ring by matching the reactant side
     of STRIPPING_REACTIONS. It returns a list of modifications found.
-    We don't actually 'strip' the atoms out of the RDKit molecule because that ruins 
-    atom indexing required for DAG linkage. We instead identify the modifications 
-    attached to the sugar ring atoms.
+    We don't actually physically delete the atoms from the RDKit molecule because that 
+    destroys atom indices required for downstream DAG linkage computations. 
+    Instead, we do a virtual scan to identify the modifications attached within a 3-hop radius.
+    
+    [CN] 3-Hop 糖修饰基团扫描器 (虚拟脱修饰)。
+    通过模板匹配 (STRIPPING_REACTIONS) 扫描糖环外的修饰基团（如硫酸基、乙酰基、磷酸基等）。
+    这里不进行真实的物理原子删除，因为这会破坏 RDKit 底层的原子序号，导致后续的
+    糖苷键方向图 (DAG) 计算崩溃。而是采用 3-hop 半径的虚拟扫描与登记。
     """
     modifications = []
     
